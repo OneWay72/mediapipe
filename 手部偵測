@@ -1,0 +1,63 @@
+import cv2 
+import mediapipe as mp 
+mp_drawing = mp.solutions.drawing_utils 
+mp_drawing_styles = mp.solutions.drawing_styles 
+mp_hands = mp.solutions.hands 
+cnt=1 
+cap = cv2.VideoCapture(0) 
+with mp_hands.Hands( 
+    model_complexity=0, 
+    min_detection_confidence=0.5, 
+    min_tracking_confidence=0.5) as hands: 
+  cnt=0 
+  while cap.isOpened(): 
+    success, image = cap.read() 
+    if not success: 
+      #print("Ignoring empty camera frame.") 
+      # If loading a video, use 'break' instead of 'continue'. 
+      continue 
+ 
+    # To improve performance, optionally mark the image as not writeable to 
+    # pass by reference. 
+    image.flags.writeable = False 
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) 
+    results = hands.process(image) 
+ 
+    # Draw the hand annotations on the image. 
+    image.flags.writeable = True 
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR) 
+    if results.multi_hand_landmarks: 
+      for hand_landmarks in results.multi_hand_landmarks: 
+          xmax=0 
+          xmin=1000 
+          ymax=0 
+          ymin=1000 
+          for i in range(0,21): 
+              #print(hand_landmarks.landmark[i]) 
+              # The 0 landmark 
+              h, w,c = image.shape 
+              cx = int(hand_landmarks.landmark[i].x*w) 
+              cy = int(hand_landmarks.landmark[i].y*h) 
+              if cx>xmax : xmax=cx 
+              if cx<xmin : xmin=cx 
+              if cy>ymax : ymax=cy 
+              if cy<ymin : ymin=cy 
+          cv2.rectangle(image, (xmin-40,ymax+40),(xmax+40,ymin-40),cv2.LINE_AA) 
+          print(xmax,xmin,ymax,ymin) 
+            #print(cx, cy) 
+           
+          roi = image[ymin-40:ymax+40,xmin-40:xmax+40] 
+          if cv2.waitKey(1) & 0xFF == ord('q'): 
+              cv2.imwrite(str(cnt)+".jpg", cv2.flip(roi,1)) 
+              cnt+=1 
+           
+          #if(xmax<640&xmin>0&ymax<480&ymin>0): 
+          #cv2.imshow('roi',roi) 
+          #if(): 
+          #   print("------") 
+ 
+    # Flip the image horizontally for a selfie-view display. 
+    cv2.imshow('MediaPipe Hands', cv2.flip(image, 1)) 
+    if cv2.waitKey(10) & 0xFF == 27: 
+      break 
+cap.release()
